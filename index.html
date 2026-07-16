@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Футбольное табло · Без бортиков</title>
+    <!-- Подключаем шрифт Comfortaa -->
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Глобальный сброс */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comfortaa', cursive, sans-serif;
+            background: #0a0c0f;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            margin: 0;
+        }
+
+        /* ГЛАВНЫЙ КОНТЕЙНЕР — без бортиков, занимает почти всю ширину */
+        .scoreboard {
+            width: 100%;
+            max-width: 1200px;
+            background: transparent;
+            border-radius: 0;
+            padding: 12px 10px 16px;
+            box-shadow: none;
+            transition: all 0.05s ease;
+        }
+
+        /* Верхняя панель: ввод названий и цветов (горизонтально, поверх) */
+        .setup-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px 28px;
+            margin-bottom: 18px;
+            padding: 6px 10px;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(6px);
+            border-radius: 60px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .team-setup {
+            display: flex;
+            align-items: center;
+            gap: 6px 14px;
+            flex-wrap: wrap;
+            padding: 6px 16px 6px 18px;
+            border-radius: 40px;
+            background: rgba(20, 25, 32, 0.7);
+        }
+
+        .team-setup label {
+            color: #d0dde8;
+            font-weight: 600;
+            font-size: 0.85rem;
+            letter-spacing: 0.4px;
+            font-family: 'Comfortaa', cursive;
+        }
+
+        .team-setup input[type="text"] {
+            background: #141c26;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 40px;
+            color: white;
+            font-weight: 700;
+            font-size: 0.95rem;
+            width: 120px;
+            outline: 1px solid #3f4d5e;
+            transition: 0.1s;
+            font-family: 'Comfortaa', cursive;
+        }
+        .team-setup input[type="text"]:focus {
+            outline: 2px solid #7a95b5;
+            background: #1b2633;
+        }
+
+        .color-picker-wrap {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+        .color-picker-wrap span {
+            color: #b0c2d2;
+            font-size: 0.7rem;
+            font-family: 'Comfortaa', cursive;
+        }
+        input[type="color"] {
+            width: 32px;
+            height: 32px;
+            border: 2px solid #4a5a6b;
+            border-radius: 40px;
+            background: transparent;
+            cursor: pointer;
+            padding: 2px;
+        }
+
+        /* ===== ОСНОВНОЕ ПОЛЕ: две половины без бортиков ===== */
+        .main-panel {
+            display: flex;
+            align-items: stretch;
+            justify-content: space-between;
+            gap: 0;                    /* никаких зазоров */
+            margin-top: 4px;
+            min-height: 320px;
+            position: relative;
+            background: #0a0c0f;        /* чёрный фон только по краям */
+            border-radius: 0;
+        }
+
+        /* Каждая половина — ПОЛНОСТЬЮ цвет команды, без бортиков */
+        .team-half {
+            flex: 1 1 0;
+            min-width: 0;
+            padding: 24px 12px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.08s ease;
+            /* фоны задаются через JS */
+            background: #1a1f26; /* fallback */
+            border-radius: 0;
+            box-shadow: none;
+            border: none;
+            position: relative;
+        }
+
+        /* Левая половина — прилегает к центру без бортиков */
+        .team-half:first-child {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+            border-right: none;
+        }
+        .team-half:last-child {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+            border-left: none;
+        }
+
+        .team-name {
+            font-family: 'Comfortaa', cursive;
+            font-size: 2.4rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 4px 16px rgba(0,0,0,0.7);
+            letter-spacing: 1px;
+            text-align: center;
+            word-break: break-word;
+            margin-bottom: 6px;
+            line-height: 1.2;
+        }
+
+        .team-score {
+            font-family: 'Comfortaa', cursive;
+            font-size: 5.6rem;
+            font-weight: 800;
+            color: white;
+            text-shadow: 0 6px 20px rgba(0,0,0,0.8);
+            line-height: 1;
+            letter-spacing: 4px;
+        }
+
+        /* ===== ЦЕНТРАЛЬНЫЙ ТАЙМЕР ===== */
+        .center-clock {
+            flex: 0 0 150px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #0a0d11;      /* чёрный фон по умолчанию */
+            padding: 12px 6px;
+            border-radius: 0;
+            box-shadow: 0 0 30px rgba(0,0,0,0.9);
+            transition: background 0.08s ease;
+            border: none;
+            z-index: 5;
+            margin: 0 -1px;           /* чтобы плотно прилегало к половинам */
+            position: relative;
+        }
+
+        .timer-display {
+            background: transparent;
+            border-radius: 0;
+            padding: 4px 6px;
+            width: 100%;
+            text-align: center;
+            transition: background 0.08s ease;
+        }
+
+        .timer {
+            font-family: 'Comfortaa', cursive;
+            font-size: 3rem;
+            font-weight: 700;
+            color: #f2f8ff;
+            letter-spacing: 4px;
+            font-variant-numeric: tabular-nums;
+            text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+        }
+
+        .period-label {
+            font-family: 'Comfortaa', cursive;
+            font-size: 0.9rem;
+            color: #c0d0df;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+            margin-top: 2px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.7);
+        }
+
+        .btn-start {
+            margin-top: 12px;
+            background: #1f2b39;
+            border: none;
+            border-radius: 60px;
+            padding: 10px 28px;
+            color: white;
+            font-family: 'Comfortaa', cursive;
+            font-weight: 700;
+            font-size: 1.3rem;
+            letter-spacing: 2px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #0e141c, 0 8px 20px rgba(0,0,0,0.7);
+            transition: 0.06s linear;
+            border: 1px solid #45576a;
+            width: 100%;
+            max-width: 160px;
+        }
+
+        .btn-start:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 #0e141c;
+        }
+
+        .btn-start:disabled {
+            opacity: 0.45;
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #0e141c;
+            pointer-events: none;
+        }
+
+        /* ===== АДАПТИВ ===== */
+        @media (max-width: 760px) {
+            .main-panel {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 2px 0;
+                min-height: 200px;
+            }
+            .team-half {
+                flex: 1 1 40%;
+                min-width: 130px;
+                padding: 16px 8px;
+            }
+            .center-clock {
+                flex: 0 0 100%;
+                max-width: 280px;
+                margin: 4px auto;
+                border-radius: 40px;
+                padding: 12px 10px;
+            }
+            .team-name { font-size: 1.6rem; }
+            .team-score { font-size: 3.8rem; }
+            .timer { font-size: 2.4rem; }
+            .btn-start { max-width: 140px; font-size: 1.1rem; }
+        }
+
+        @media (max-width: 480px) {
+            .setup-row { gap: 6px; }
+            .team-setup { padding: 4px 10px; }
+            .team-setup input[type="text"] { width: 80px; font-size: 0.8rem; }
+            .scoreboard { padding: 8px 4px; }
+            .team-name { font-size: 1.2rem; }
+            .team-score { font-size: 2.8rem; }
+            .timer { font-size: 2rem; }
+            .center-clock { padding: 8px 6px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="scoreboard">
+
+    <!-- Верхняя панель: ввод названий и цветов -->
+    <div class="setup-row">
+        <!-- Команда 1 -->
+        <div class="team-setup">
+            <label>⚽ Команда 1</label>
+            <input type="text" id="team1Name" value="Арсенал" placeholder="Название">
+            <div class="color-picker-wrap">
+                <span>🎨</span>
+                <input type="color" id="team1Color" value="#c62828">
+            </div>
+        </div>
+        <!-- Команда 2 -->
+        <div class="team-setup">
+            <label>⚽ Команда 2</label>
+            <input type="text" id="team2Name" value="Реал" placeholder="Название">
+            <div class="color-picker-wrap">
+                <span>🎨</span>
+                <input type="color" id="team2Color" value="#1565c0">
+            </div>
+        </div>
+    </div>
+
+    <!-- Основное поле: две половины без бортиков + центр -->
+    <div class="main-panel">
+        <!-- Левая половина (команда 1) -->
+        <div class="team-half" id="team1Half">
+            <div class="team-name" id="team1DisplayName">Арсенал</div>
+            <div class="team-score" id="team1Score">0</div>
+        </div>
+
+        <!-- Центральный таймер -->
+        <div class="center-clock" id="centerClock">
+            <div class="timer-display" id="timerDisplay">
+                <div class="timer" id="timerText">00:00</div>
+                <div class="period-label" id="periodLabel">ТАЙМ 1</div>
+            </div>
+            <button class="btn-start" id="startBtn">▶ СТАРТ</button>
+        </div>
+
+        <!-- Правая половина (команда 2) -->
+        <div class="team-half" id="team2Half">
+            <div class="team-name" id="team2DisplayName">Реал</div>
+            <div class="team-score" id="team2Score">0</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ---- DOM ----
+        const team1NameInput = document.getElementById('team1Name');
+        const team2NameInput = document.getElementById('team2Name');
+        const team1ColorInput = document.getElementById('team1Color');
+        const team2ColorInput = document.getElementById('team2Color');
+
+        const team1Display = document.getElementById('team1DisplayName');
+        const team2Display = document.getElementById('team2DisplayName');
+        const team1ScoreEl = document.getElementById('team1Score');
+        const team2ScoreEl = document.getElementById('team2Score');
+        const team1Half = document.getElementById('team1Half');
+        const team2Half = document.getElementById('team2Half');
+
+        const timerText = document.getElementById('timerText');
+        const periodLabel = document.getElementById('periodLabel');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const centerClock = document.getElementById('centerClock');
+        const startBtn = document.getElementById('startBtn');
+
+        // ---- состояние ----
+        let timerInterval = null;
+        let currentPhase = 'idle';      // 'idle' | 'firstHalf' | 'break' | 'secondHalf' | 'finished'
+        let secondsLeft = 0;
+
+        const HALF_DURATION = 45 * 60;
+        const BREAK_DURATION = 15 * 60;
+
+        let score1 = 0;
+        let score2 = 0;
+
+        // ---- обновить цвета и имена ----
+        function updateTeamDisplay() {
+            const name1 = team1NameInput.value.trim() || 'Команда 1';
+            const name2 = team2NameInput.value.trim() || 'Команда 2';
+            team1Display.textContent = name1;
+            team2Display.textContent = name2;
+
+            const color1 = team1ColorInput.value;
+            const color2 = team2ColorInput.value;
+
+            // ПОЛНОСТЬЮ заливаем каждую половину
+            team1Half.style.background = color1;
+            team2Half.style.background = color2;
+
+            // Если цвет тёмный, текст остаётся белым (мы его и так задали)
+            // Можно добавить контраст, но оставим как есть.
+            // Обводки нет — без бортиков
+            team1Half.style.border = 'none';
+            team2Half.style.border = 'none';
+        }
+
+        function updateScoreDisplay() {
+            team1ScoreEl.textContent = score1;
+            team2ScoreEl.textContent = score2;
+        }
+
+        // ---- таймер ----
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function startTimer(seconds, phase) {
+            stopTimer();
+            currentPhase = phase;
+            secondsLeft = seconds;
+            updateTimerDisplay();
+
+            // По умолчанию центр — чёрный (кроме перерыва)
+            centerClock.style.background = '#0a0d11';
+            timerDisplay.style.background = 'transparent';
+
+            if (phase === 'break') {
+                // ЗЕЛЁНЫЙ фон во время перерыва (центр и таймер)
+                centerClock.style.background = '#1b6b2a';
+                timerDisplay.style.background = 'transparent';
+            } else {
+                centerClock.style.background = '#0a0d11';
+                timerDisplay.style.background = 'transparent';
+            }
+
+            // label
+            if (phase === 'firstHalf') periodLabel.textContent = 'ТАЙМ 1';
+            else if (phase === 'break') periodLabel.textContent = 'ПЕРЕРЫВ';
+            else if (phase === 'secondHalf') periodLabel.textContent = 'ТАЙМ 2';
+            else if (phase === 'finished') periodLabel.textContent = 'МАТЧ ОКОНЧЕН';
+
+            startBtn.disabled = true;
+            startBtn.textContent = '⏳ ИДЁТ';
+
+            timerInterval = setInterval(() => {
+                secondsLeft--;
+                updateTimerDisplay();
+
+                if (secondsLeft <= 0) {
+                    stopTimer();
+                    // Резкий переход на следующую фазу
+                    if (phase === 'firstHalf') {
+                        startTimer(BREAK_DURATION, 'break');
+                    } else if (phase === 'break') {
+                        startTimer(HALF_DURATION, 'secondHalf');
+                    } else if (phase === 'secondHalf') {
+                        currentPhase = 'finished';
+                        periodLabel.textContent = 'МАТЧ ОКОНЧЕН';
+                        timerText.textContent = '00:00';
+                        startBtn.disabled = false;
+                        startBtn.textContent = '▶ СТАРТ';
+                        centerClock.style.background = '#0a0d11';
+                        timerDisplay.style.background = 'transparent';
+                        stopTimer();
+                    }
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(Math.max(0, secondsLeft) / 60);
+            const secs = Math.floor(Math.max(0, secondsLeft) % 60);
+            timerText.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        // ---- старт ----
+        function onStart() {
+            if (timerInterval) return;
+
+            if (currentPhase === 'finished' || currentPhase === 'idle') {
+                startTimer(HALF_DURATION, 'firstHalf');
+            } else {
+                // защита: если таймер не идёт, но фаза активна — перезапускаем
+                if (currentPhase === 'firstHalf') startTimer(HALF_DURATION, 'firstHalf');
+                else if (currentPhase === 'break') startTimer(BREAK_DURATION, 'break');
+                else if (currentPhase === 'secondHalf') startTimer(HALF_DURATION, 'secondHalf');
+            }
+        }
+
+        // ---- сброс UI при изменении ----
+        function refreshUI() {
+            updateTeamDisplay();
+            updateScoreDisplay();
+            if (!timerInterval && currentPhase !== 'firstHalf' && currentPhase !== 'break' && currentPhase !== 'secondHalf') {
+                timerText.textContent = '00:00';
+                periodLabel.textContent = 'ТАЙМ 1';
+                centerClock.style.background = '#0a0d11';
+                timerDisplay.style.background = 'transparent';
+                startBtn.disabled = false;
+                startBtn.textContent = '▶ СТАРТ';
+                currentPhase = 'idle';
+            }
+        }
+
+        // ---- слушатели ----
+        team1NameInput.addEventListener('input', refreshUI);
+        team2NameInput.addEventListener('input', refreshUI);
+        team1ColorInput.addEventListener('input', refreshUI);
+        team2ColorInput.addEventListener('input', refreshUI);
+        startBtn.addEventListener('click', onStart);
+
+        // ---- инициализация ----
+        (function init() {
+            team1NameInput.value = 'Арсенал';
+            team2NameInput.value = 'Реал';
+            team1ColorInput.value = '#c62828';
+            team2ColorInput.value = '#1565c0';
+            score1 = 0;
+            score2 = 0;
+            currentPhase = 'idle';
+            timerText.textContent = '00:00';
+            periodLabel.textContent = 'ТАЙМ 1';
+            centerClock.style.background = '#0a0d11';
+            timerDisplay.style.background = 'transparent';
+            startBtn.disabled = false;
+            startBtn.textContent = '▶ СТАРТ';
+            refreshUI();
+        })();
+
+    })();
+</script>
+</body>
+</html>
